@@ -2,6 +2,7 @@ import configparser
 import os
 import importlib.metadata
 import argparse
+import re
 from argparse import RawTextHelpFormatter
 from urllib.parse import unquote
 from Registry import Registry
@@ -82,7 +83,7 @@ def decryptRegistry():
                 decPassword = "NO_PASSWORD_FOUND"
             sectionName = unquote(session)
             hostNameEscaped = unquote(hostName)
-            printCreds(sectionName, hostNameEscaped, userName, decPassword)
+            printCredsRegistry(sectionName, hostNameEscaped, userName, decPassword)
 
 
 def decryptIni(filepath):
@@ -98,18 +99,30 @@ def decryptIni(filepath):
     for section in config.sections():
         if config.has_option(section, 'HostName'):
             hostName = config.get(section, 'HostName')
+            if config.has_option(section, 'PortNumber'):
+                portNumber = config.get(section, 'PortNumber')
+            else:
+                portNumber = "NO_PORT_FOUND"
             if config.has_option(section, 'UserName'):
                 userName = config.get(section, 'UserName')
             else:
                 userName = "NO_USERNAME_FOUND"
             if config.has_option(section, 'Password'):
-                encPassword = config.get(section, 'Password')
-                decPassword = decryptPasswd(hostName, userName, encPassword)
+                Password = config.get(section, 'Password')
+                if re.fullmatch(r'[0-9A-F]+', Password):
+                    decPassword = decryptPasswd(hostName, userName, Password)
+                else:
+                    decPassword = f"{Password}"
             else:
                 decPassword = "NO_PASSWORD_FOUND"
+            if config.has_option(section, 'PublicKeyFile'):
+                publicKey = config.get(section, 'PublicKeyFile', raw=True)
+            else:
+                publicKey = "NO_PUBLIC_KEY"
             sectionName = unquote(section)
             hostNameEscaped = unquote(hostName)
-            printCreds(sectionName, hostNameEscaped, userName, decPassword)
+            publicKeyEscaped = unquote(publicKey)
+            printCreds(sectionName, hostNameEscaped, portNumber, userName, decPassword, publicKeyEscaped)
 
 def decryptHiveFile(filepath):
     print(f"[======={os.path.basename(filepath)}=======]")
@@ -152,12 +165,20 @@ def get_value(session_key, str) -> str:
     return value
 
 
-def printCreds(sectionName, hostName, userName, decPassword):
+def printCreds(sectionName, hostName, portNumber, userName, decPassword, publicKey):
+    print("====={s}=====".format(s=sectionName))
+    print("HostName: {s}".format(s=hostName))
+    print("PortNumber: {s}".format(s=portNumber))
+    print("UserName: {s}".format(s=userName))
+    print("Password: {s}".format(s=decPassword))
+    print("PublicKeyFile: {s}\n".format(s=publicKey))
+
+
+def printCredsRegistry(sectionName, hostName, userName, decPassword):
     print("====={s}=====".format(s=sectionName))
     print("HostName: {s}".format(s=hostName))
     print("UserName: {s}".format(s=userName))
-    print("Password: {s}\n".format(s=decPassword))
-
+    print("Password: {s}".format(s=decPassword))
 
 # ==================== Decrypt Password ====================
 def decryptPasswd(host: str, username: str, password: str) -> str:

@@ -73,6 +73,10 @@ def decryptRegistry():
             session = winreg.EnumKey(sessions_key, index)
             session_key = winreg.OpenKey(sessions_key, session)
             hostName = get_value(session_key, 'HostName')
+            if get_value(session_key, 'PortNumber'):
+                portNumber = get_value(session_key, 'PortNumber')
+            else:
+                portNumber = "NO_PORT_FOUND"
             userName = get_value(session_key, 'UserName')
             if not userName:
                 userName = "NO_USERNAME_FOUND"
@@ -81,9 +85,14 @@ def decryptRegistry():
                 decPassword = decryptPasswd(hostName, userName, password)
             else:
                 decPassword = "NO_PASSWORD_FOUND"
+            if get_value(session_key, 'PublicKeyFile'):
+                publicKey = get_value(session_key, 'PublicKeyFile')
+            else:
+                publicKey = "NO_PUBLIC_KEY"
             sectionName = unquote(session)
             hostNameEscaped = unquote(hostName)
-            printCredsRegistry(sectionName, hostNameEscaped, userName, decPassword)
+            publicKeyEscaped = unquote(publicKey)
+            printCreds(sectionName, hostNameEscaped, portNumber, userName, decPassword, publicKeyEscaped)
 
 
 def decryptIni(filepath):
@@ -173,12 +182,6 @@ def printCreds(sectionName, hostName, portNumber, userName, decPassword, publicK
     print("Password: {s}".format(s=decPassword))
     print("PublicKeyFile: {s}\n".format(s=publicKey))
 
-
-def printCredsRegistry(sectionName, hostName, userName, decPassword):
-    print("====={s}=====".format(s=sectionName))
-    print("HostName: {s}".format(s=hostName))
-    print("UserName: {s}".format(s=userName))
-    print("Password: {s}".format(s=decPassword))
 
 # ==================== Decrypt Password ====================
 def decryptPasswd(host: str, username: str, password: str) -> str:
